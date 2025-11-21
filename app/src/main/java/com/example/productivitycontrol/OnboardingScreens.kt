@@ -1,11 +1,14 @@
 package com.example.productivitycontrol
 
+import android.content.Intent
+import android.provider.Settings
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 
 @Composable
@@ -107,7 +110,6 @@ fun TaskSelectionScreen(
                     color = colors.onBackground
                 )
 
-                // FlowRow might require experimental opt-in on some versions
                 FlowRow(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -180,7 +182,6 @@ fun AppBlockSelectionScreen(
     onPrev: () -> Unit
 ) {
     val colors = MaterialTheme.colorScheme
-    // Side effect to load mock data once
     LaunchedEffect(Unit) {
         viewModel.addMockBlockedAppsIfEmpty()
     }
@@ -211,7 +212,6 @@ fun AppBlockSelectionScreen(
                     color = colors.onBackground.copy(alpha = 0.7f)
                 )
 
-                // Using LazyColumn for scrollable list
                 androidx.compose.foundation.lazy.LazyColumn(
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                     modifier = Modifier.heightIn(max = 400.dp)
@@ -258,10 +258,11 @@ fun PermissionsScreen(
     onPrev: () -> Unit
 ) {
     val colors = MaterialTheme.colorScheme
+    val context = LocalContext.current
+
     val permissions = listOf(
         "Accessibility (detect app usage)",
-        "Display Over Other Apps (blocking popup)",
-        "Camera (upload proof)"
+        "Display Over Other Apps (blocking popup)"
     )
 
     Surface(
@@ -308,11 +309,17 @@ fun PermissionsScreen(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 OutlinedButton(onClick = onPrev) { Text("Prev") }
+
+                // --- THE MAGIC BUTTON ---
                 Button(onClick = {
-                    // TODO: request actual permissions
+                    // 1. Open the Phone Settings
+                    val intent = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
+                    context.startActivity(intent)
+
+                    // 2. Move to Home
                     onDone()
                 }) {
-                    Text("Grant Permissions")
+                    Text("Open Settings & Grant")
                 }
             }
         }
