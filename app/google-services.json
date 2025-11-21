@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "983827982502",
+    "project_id": "bewise-16406",
+    "storage_bucket": "bewise-16406.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:983827982502:android:bc290a33b4befd4f2e6c67",
+        "android_client_info": {
+          "package_name": "com.example.productivitycontrol"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "983827982502-6h7j3kh093lf48uen78k6ln97ju6ncb7.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.productivitycontrol",
+            "certificate_hash": "30849eb778785f70e388d690763d5c06ce3f9192"
+          }
+        },
+        {
+          "client_id": "983827982502-olqibld5o856ien2ebis2pehrjel5sko.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAk1YCxv9kea8dgMz9j0sbSrkBMJbEpNvo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "983827982502-olqibld5o856ien2ebis2pehrjel5sko.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
