@@ -104,10 +104,14 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     fun startFocus() {
         focusRunning = true
+        // Turn ON the shield!
+        FocusState.isBlockingActive = true
     }
 
     fun stopFocus() {
         focusRunning = false
+        // Turn OFF the shield
+        FocusState.isBlockingActive = false
     }
 
     fun completeFocusSecondTick() {
