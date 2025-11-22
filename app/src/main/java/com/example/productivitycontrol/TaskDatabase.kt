@@ -1,55 +1,15 @@
 package com.example.productivitycontrol
 
-import android.content.Context
-import androidx.room.*
-import kotlinx.coroutines.flow.Flow
+import com.google.firebase.firestore.Exclude
 
-// 1. THE TABLE (What a task looks like in the database)
-@Entity(tableName = "tasks")
+// This is the shape of our data on the Cloud.
+// We must remove all Room (DAO, @Entity, etc.) definitions.
 data class TaskEntity(
-    @PrimaryKey(autoGenerate = true) val id: Int = 0,
-    val name: String,
-    val durationMinutes: Int,
+    // @Exclude is needed so Firebase doesn't try to save the ID inside the document.
+    @get:Exclude @set:Exclude var id: String = "",
+    val name: String = "",
+    val durationMinutes: Int = 0,
     val isCompleted: Boolean = false,
-    val date: Long = System.currentTimeMillis()
+    val date: Long = System.currentTimeMillis(), // We keep the date for streak/heatmap
+    val userId: String = "" // Essential for security rules (knowing who owns the task)
 )
-
-// 2. THE COMMANDS (How we read/write data)
-@Dao
-interface TaskDao {
-    @Query("SELECT * FROM tasks ORDER BY id DESC")
-    fun getAllTasks(): Flow<List<TaskEntity>> // "Flow" means it updates automatically!
-
-    @Insert
-    suspend fun insertTask(task: TaskEntity)
-
-    @Query("UPDATE tasks SET isCompleted = :completed WHERE id = :taskId")
-    suspend fun updateCompletion(taskId: Int, completed: Boolean)
-
-    @Delete
-    suspend fun deleteTask(task: TaskEntity)
-}
-
-// 3. THE DATABASE ( The actual box holding the tables)
-@Database(entities = [TaskEntity::class], version = 1)
-abstract class AppDatabase : RoomDatabase() {
-    abstract fun taskDao(): TaskDao
-
-    companion object {
-        // Singleton prevents multiple database instances opening at the same time.
-        @Volatile
-        private var INSTANCE: AppDatabase? = null
-
-        fun getDatabase(context: Context): AppDatabase {
-            return INSTANCE ?: synchronized(this) {
-                val instance = Room.databaseBuilder(
-                    context.applicationContext,
-                    AppDatabase::class.java,
-                    "task_database"
-                ).build()
-                INSTANCE = instance
-                instance
-            }
-        }
-    }
-}

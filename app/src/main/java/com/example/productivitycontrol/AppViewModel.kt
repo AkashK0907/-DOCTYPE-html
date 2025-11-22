@@ -6,48 +6,44 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
-import androidx.lifecycle.viewModelScope
-import kotlinx.coroutines.launch
+import com.google.firebase.auth.ktx.auth
+import com.google.firebase.firestore.Query
+import com.google.firebase.firestore.ktx.firestore
+import com.google.firebase.ktx.Firebase
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 
 // --- DATA CLASSES ---
-data class BlockedApp(
-    val packageName: String,
-    val displayName: String,
-    var enabled: Boolean = true
-)
+data class BlockedApp(val packageName: String, val displayName: String, var enabled: Boolean = true)
+data class Group(val id: Int, val name: String, val description: String, val dailyGoalMinutes: Int, val visibilityPublic: Boolean, val maxMembers: Int)
+data class BadgeDef(val title: String, val description: String, val threshold: Int, val iconChar: String)
 
-data class Group(
-    val id: Int,
-    val name: String,
-    val description: String,
-    val dailyGoalMinutes: Int,
-    val visibilityPublic: Boolean,
-    val maxMembers: Int
-)
-
-data class BadgeDef(
-    val title: String,
-    val description: String,
-    val threshold: Int,
-    val iconChar: String
+// NEW: Leaderboard Data Model
+data class UserScore(
+    val userId: String = "",
+    val userName: String = "Anonymous",
+    val score: Int = 0
 )
 
 class AppViewModel(application: Application) : AndroidViewModel(application) {
 
-    private val db = AppDatabase.getDatabase(application)
-    private val dao = db.taskDao()
+    private val db = Firebase.firestore
+    private val auth = Firebase.auth
+    private val currentUserId = auth.currentUser?.uid
+    private val currentUserName = auth.currentUser?.displayName ?: "You"
 
     var isDarkTheme by mutableStateOf(true)
         private set
 
-    // --- SPLIT LISTS ---
-    var activeTasks = mutableStateListOf<TaskEntity>() // For Home Screen
+    // Lists
+    var activeTasks = mutableStateListOf<TaskEntity>()
+        private set
+    var historyTasks = mutableStateListOf<TaskEntity>()
         private set
 
-    var historyTasks = mutableStateListOf<TaskEntity>() // For Past Tasks Screen
+    // NEW: The Real Leaderboard List
+    var leaderboard = mutableStateListOf<UserScore>()
         private set
 
     val blockedApps = mutableStateListOf<BlockedApp>()
@@ -55,7 +51,6 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     var totalPoints by mutableStateOf(0)
         private set
-
     var currentStreak by mutableStateOf(0)
         private set
 
@@ -74,38 +69,57 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     )
 
     init {
-        viewModelScope.launch {
-            dao.getAllTasks().collect { dbTasks ->
-                // 24 Hour Cutoff (86400000 milliseconds)
-                val cutoff = System.currentTimeMillis() - 86400000
-
-                activeTasks.clear()
-                historyTasks.clear()
-
-                dbTasks.forEach { task ->
-                    // IF task is NOT done OR it was done recently -> Keep on Home
-                    if (!task.isCompleted || task.date > cutoff) {
-                        activeTasks.add(task)
-                    } else {
-                        // IF task is done AND old -> Move to History
-                        historyTasks.add(task)
+        if (currentUserId != null) {
+            // 1. Listen to YOUR tasks
+            db.collection("tasks")
+                .whereEqualTo("userId", currentUserId)
+                .addSnapshotListener { snapshots, e ->
+                    if (e != null) return@addSnapshotListener
+                    if (snapshots != null) {
+                        val allTasks = snapshots.toObjects(TaskEntity::class.java)
+                        for (i in allTasks.indices) allTasks[i].id = snapshots.documents[i].id
+                        processTasks(allTasks)
                     }
                 }
 
-                recalculateStats(dbTasks) // Pass full list for points calc
-            }
+            // 2. Listen to Global Leaderboard
+            fetchLeaderboard()
         }
+    }
+
+    private fun fetchLeaderboard() {
+        db.collection("leaderboard")
+            .orderBy("score", Query.Direction.DESCENDING)
+            .limit(20)
+            .addSnapshotListener { snapshots, e ->
+                if (e == null && snapshots != null) {
+                    leaderboard.clear()
+                    leaderboard.addAll(snapshots.toObjects(UserScore::class.java))
+                }
+            }
+    }
+
+    private fun processTasks(allTasks: List<TaskEntity>) {
+        val cutoff = System.currentTimeMillis() - 86400000
+        activeTasks.clear()
+        historyTasks.clear()
+
+        allTasks.sortedByDescending { it.date }.forEach { task ->
+            if (!task.isCompleted || task.date > cutoff) activeTasks.add(task)
+            else historyTasks.add(task)
+        }
+        recalculateStats(allTasks)
     }
 
     private fun recalculateStats(allTasks: List<TaskEntity>) {
         totalPoints = allTasks.filter { it.isCompleted }.size * 10
 
-        // Streak Logic
-        val completedDates = allTasks
-            .filter { it.isCompleted }
+        // Update Cloud Score
+        updateCloudScore(totalPoints)
+
+        val completedDates = allTasks.filter { it.isCompleted }
             .map { Instant.ofEpochMilli(it.date).atZone(ZoneId.systemDefault()).toLocalDate() }
-            .distinct()
-            .sortedDescending()
+            .distinct().sortedDescending()
 
         if (completedDates.isEmpty()) {
             currentStreak = 0
@@ -115,7 +129,6 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         var streak = 0
         val today = LocalDate.now()
         var checkDate = today
-
         if (!completedDates.contains(today)) checkDate = today.minusDays(1)
 
         while (completedDates.contains(checkDate)) {
@@ -125,18 +138,24 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         currentStreak = streak
     }
 
+    private fun updateCloudScore(points: Int) {
+        if (currentUserId == null) return
+        // Upsert score to "leaderboard" collection
+        val userScore = UserScore(currentUserId, currentUserName, points)
+        db.collection("leaderboard").document(currentUserId).set(userScore)
+    }
+
     fun toggleTheme() { isDarkTheme = !isDarkTheme }
 
     fun addTask(name: String, durationMinutes: Int) {
-        viewModelScope.launch {
-            dao.insertTask(TaskEntity(name = name, durationMinutes = durationMinutes, date = System.currentTimeMillis()))
-        }
+        if (currentUserId == null) return
+        val newTask = TaskEntity(name = name, durationMinutes = durationMinutes, date = System.currentTimeMillis(), userId = currentUserId, isCompleted = false)
+        db.collection("tasks").add(newTask)
     }
 
     fun markTaskCompleted(task: TaskEntity) {
-        viewModelScope.launch {
-            val newStatus = !task.isCompleted
-            dao.updateCompletion(task.id, newStatus)
+        if (task.id.isNotEmpty()) {
+            db.collection("tasks").document(task.id).update("completed", !task.isCompleted)
         }
     }
 
@@ -151,17 +170,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun startFocus() {
-        focusRunning = true
-        FocusState.isBlockingActive = true
-    }
-
-    fun stopFocus() {
-        focusRunning = false
-        FocusState.isBlockingActive = false
-    }
-
-    fun completeFocusSecondTick() {
-        if (focusRunning) focusSeconds++
-    }
+    fun startFocus() { focusRunning = true; FocusState.isBlockingActive = true }
+    fun stopFocus() { focusRunning = false; FocusState.isBlockingActive = false }
+    fun completeFocusSecondTick() { if (focusRunning) focusSeconds++ }
 }

@@ -60,6 +60,64 @@ fun BackButton(onClick: () -> Unit, title: String) {
     }
 }
 
+// --- REAL-TIME LEADERBOARD (UPDATED) ---
+@Composable
+fun LeaderboardScreen(viewModel: AppViewModel, onBack: () -> Unit) {
+    val leaders = viewModel.leaderboard // Real Cloud Data!
+    val colors = MaterialTheme.colorScheme
+
+    LiquidBackground {
+        Column(modifier = Modifier.fillMaxSize().padding(20.dp)) {
+            BackButton(onBack, "Global Leaderboard")
+
+            if (leaders.isEmpty()) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator(color = colors.primary)
+                }
+            } else {
+                LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    items(leaders.size) { index ->
+                        val user = leaders[index]
+                        FeatureGlassCard(modifier = Modifier.fillMaxWidth()) {
+                            Row(
+                                modifier = Modifier.padding(16.dp).fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text(
+                                        "#${index + 1}",
+                                        color = colors.primary.copy(0.5f),
+                                        fontWeight = FontWeight.Bold,
+                                        modifier = Modifier.width(30.dp)
+                                    )
+                                    Text(
+                                        if(user.userId == "") "You" else user.userName,
+                                        color = colors.primary,
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                }
+                                Surface(
+                                    color = colors.primary.copy(0.1f),
+                                    shape = RoundedCornerShape(8.dp)
+                                ) {
+                                    Text(
+                                        "${user.score} pts",
+                                        color = colors.primary,
+                                        fontWeight = FontWeight.Bold,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
 // --- CALENDAR HEATMAP ---
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
@@ -81,12 +139,6 @@ fun HeatmapCalendar(tasks: List<TaskEntity>) {
                 }
             }
         }
-        Spacer(Modifier.height(16.dp))
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.End, modifier = Modifier.fillMaxWidth()) {
-            Text("Less", style = MaterialTheme.typography.labelSmall, color = colors.primary.copy(0.3f)); Spacer(Modifier.width(8.dp))
-            HeatmapCell(0); Spacer(Modifier.width(4.dp)); HeatmapCell(50); Spacer(Modifier.width(4.dp)); HeatmapCell(100); Spacer(Modifier.width(8.dp))
-            Text("More", style = MaterialTheme.typography.labelSmall, color = colors.primary.copy(0.3f))
-        }
     }
 }
 
@@ -103,11 +155,8 @@ fun HeatmapCell(minutes: Int) {
     Box(modifier = Modifier.size(14.dp).clip(RoundedCornerShape(3.dp)).background(color).border(0.5.dp, if(minutes == 0) colors.outline.copy(0.1f) else Color.Transparent, RoundedCornerShape(3.dp)))
 }
 
-// --- SCREENS ---
-
 @Composable
 fun CalendarScreen(viewModel: AppViewModel, onBack: () -> Unit) {
-    // FIX: Combine lists so calendar shows ALL history
     val tasks = viewModel.activeTasks + viewModel.historyTasks
     val colors = MaterialTheme.colorScheme
     LiquidBackground {
@@ -234,27 +283,6 @@ fun NotificationsScreen(onBack: () -> Unit) {
                     Text("No new distractions.", style = MaterialTheme.typography.titleMedium, color = colors.primary)
                     Spacer(Modifier.height(8.dp))
                     Text("Notifications blocked while in focus mode appear here.", style = MaterialTheme.typography.bodySmall, color = colors.primary.copy(0.5f))
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun LeaderboardScreen(onBack: () -> Unit) {
-    val fakeLeaders = listOf("Alice – 3200 pts", "You – 2750 pts", "Dev – 2600 pts", "Chris – 2400 pts")
-    val colors = MaterialTheme.colorScheme
-    LiquidBackground {
-        Column(modifier = Modifier.fillMaxSize().padding(20.dp)) {
-            BackButton(onBack, "Leaderboard")
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                items(fakeLeaders.size) { index ->
-                    FeatureGlassCard(modifier = Modifier.fillMaxWidth()) {
-                        Row(modifier = Modifier.padding(16.dp).fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text("#${index + 1}", color = colors.primary.copy(0.5f), fontWeight = FontWeight.Bold)
-                            Text(fakeLeaders[index], color = colors.primary, fontWeight = FontWeight.Medium)
-                        }
-                    }
                 }
             }
         }

@@ -75,7 +75,7 @@ fun AppNavHost(appViewModel: AppViewModel) {
         }
 
         composable(Routes.LEADERBOARD) {
-            LeaderboardScreen(onBack = { navController.popBackStack() })
+            LeaderboardScreen(viewModel = appViewModel, onBack = { navController.popBackStack() })
         }
 
         composable(Routes.CALENDAR) {
