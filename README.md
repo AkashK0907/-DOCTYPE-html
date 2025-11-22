@@ -1,135 +1,165 @@
-🧠 beWise - The Ultimate Productivity & Focus Super-App
+---
 
-beWise is a comprehensive productivity and focus management application designed to help users reclaim their time. It combines a powerful task manager with a ruthless, system-level App Blocker, all wrapped in a premium "Liquid Glass" aesthetic.
+# 🧠 beWise – The Ultimate Productivity & Focus Super-App
 
-✨ Key Features
+beWise is a next-generation productivity and focus management application designed to help users **reclaim their time**. It combines a powerful task manager, deep focus tools, a ruthless system-level App Blocker, multiplayer accountability, and cutting-edge AI task verification — all wrapped in a premium **Liquid Glass** aesthetic.
 
-🛡️ System-Level App Blocker
+---
 
-Ruthless Intervention: Uses Android Accessibility Services to detect when you open distracting apps (Instagram, TikTok, etc.).
+## ✨ Features
 
-Instant Kill Switch: Instantly forces the distracting app closed.
+### 🛡️ System-Level App Blocker
 
-Red Alert: Flashes a full-screen "Get Back to Work!" warning to break the dopamine loop.
+A ruthless Android Accessibility-Service-powered productivity guardian.
 
-Timer-Based: Only active when your Focus Timer is running.
+* **Ruthless Intervention:** Detects when you open distracting apps (Instagram, TikTok, etc.).
+* **Instant Kill Switch:** Force-closes them instantly.
+* **Red Alert Mode:** Flashes a full-screen warning: **“Get Back to Work!”**
+* **Timer-Based:** Only activates when your Focus Timer is running.
 
-☁️ Cloud Sync & Multiplayer
+---
 
-Google Login: Secure authentication powered by Firebase.
+### ☁️ Cloud Sync & Multiplayer
 
-Real-time Database: Tasks, points, and streaks sync instantly across devices using Firestore.
+Stay productive alone or with friends — in real time.
 
-Global Leaderboard: Compete with friends and see your rank worldwide in real-time.
+* **Google Login:** Secure sign-in with Firebase Authentication.
+* **Realtime Sync:** Tasks, points, streaks, and data sync across devices via Firestore.
+* **Global Leaderboard:** Compete worldwide and track your rank live.
 
-👥 Social Squads
+---
 
-Private Groups: Create exclusive productivity circles with secret 6-digit codes.
+### 👥 Social Squads
 
-Public Squads: Browse and join communities to find study partners.
+Community + accountability = unstoppable focus.
 
-Live Chat (Coming Soon): Stay accountable with your squad.
+* **Private Squads:** Create groups with secret 6-digit access codes.
+* **Public Squads:** Discover open productivity communities.
+* **Live Chat (Coming Soon):** Stay connected with your squad in real time.
 
-🎨 Premium "Liquid Glass" UI
+---
 
-Dual Theme Engine: Seamlessly switches between Void Black (Dark) and Silver Mist (Light) modes.
+### 🎨 Premium “Liquid Glass” UI
 
-Glassmorphism: Features frosted glass cards, dynamic mesh gradients, and shiny borders.
+A uniquely immersive design built with Jetpack Compose.
 
-Immersive Experience: Full-screen mode removes system bars for deep focus.
+* **Dual Theme Engine:** Void Black (Dark) & Silver Mist (Light).
+* **Glassmorphism Everywhere:** Frosted cards, dynamic mesh gradients, glassy blur layers.
+* **Immersive Mode:** Full-screen, distraction-free experience with hidden system bars.
 
-📊 Advanced Analytics
+---
 
-GitHub-style Heatmap: Visualizes your consistency over the last 100 days.
+### 📊 Advanced Analytics
 
-Streak Counter: Tracks consecutive days of productivity.
+Understand your productivity at a glance.
 
-Smart Points System: Earn 10 pts per task. Unlock badges like "Novice", "Master", and "Productivity God".
+* **GitHub-Style Heatmap:** See your last 100 days of productivity.
+* **Streak Counter:** Track consecutive days of hitting your goals.
+* **Smart Points System:** Earn points, unlock badges (“Novice”, “Master”, “Productivity God”).
 
-🔮 Future Innovation: AI Task Verification
+---
 
-We are actively developing a groundbreaking feature using the Google Gemini API:
+### 🔮 AI Task Verification (In Development)
 
-Camera Verification: Instead of just checking a box, users will snap a picture of their work (e.g., completed notes, clean room, gym equipment).
+Ensuring 100% honest productivity using Google Gemini Vision.
 
-AI Analysis: The Gemini Vision model will analyze the image to verify the task was actually completed.
+* **Camera Verification:** Snap a photo of your completed task (notes, workout, clean room).
+* **AI Analysis:** The Gemini Vision API checks if the task is actually completed.
+* **Auto-Completion:** Verified tasks are automatically marked as done.
 
-Auto-Completion: If valid, the task is marked done automatically, ensuring 100% honest productivity.
+---
 
-🏗️ Architecture
+## 🏗️ Architecture
 
-Technology Stack
+### 🧩 Technology Stack
 
-Frontend: Kotlin, Jetpack Compose (Material 3)
+| Layer              | Technology                                   |
+| ------------------ | -------------------------------------------- |
+| **Frontend**       | Kotlin, Jetpack Compose (Material 3)         |
+| **Backend**        | Firebase Firestore & Firebase Authentication |
+| **Local Data**     | Room Database (with sync logic)              |
+| **Focus Engine**   | Android Accessibility Services               |
+| **AI Integration** | Google Gemini API (Vision)                   |
 
-Backend: Firebase (Firestore, Authentication)
+---
 
-Local Data: Room Database (with Cloud Sync logic)
+### 📁 Project Structure
 
-Core API: Android Accessibility Services
-
-AI Integration: Google Gemini API (Computer Vision)
-
-Project Structure
-
+```
 beWise/
 ├── app/
 │   ├── src/main/java/com/example/productivitycontrol/
-│   │   ├── MainActivity.kt          # Entry point & Immersive Mode
-│   │   ├── AppViewModel.kt          # Brain: Cloud Logic, Stats, State
-│   │   ├── ui/theme/                # Liquid Glass Theme Engine
-│   │   ├── HomeScreen.kt            # Dashboard & Timer
-│   │   ├── GroupScreens.kt          # Social Squads Logic
-│   │   ├── FeatureScreens.kt        # Leaderboard, Calendar, Badges
-│   │   ├── AppBlockerService.kt     # Accessibility Service (The Watchdog)
+│   │   ├── MainActivity.kt            # Entry point & Immersive Mode
+│   │   ├── AppViewModel.kt            # Brain: Cloud Logic, Stats, State
+│   │   ├── ui/theme/                  # Liquid Glass Theme Engine
+│   │   ├── HomeScreen.kt              # Dashboard & Timer
+│   │   ├── GroupScreens.kt            # Social Squads Logic
+│   │   ├── FeatureScreens.kt          # Leaderboard, Calendar, Badges
+│   │   ├── AppBlockerService.kt       # Accessibility Service (The Watchdog)
 │   │   └── ...
-│   └── google-services.json         # Firebase Config
+│   └── google-services.json           # Firebase Config
 └── README.md
+```
 
+---
 
-🚀 Getting Started
+## 🚀 Getting Started
 
-Prerequisites
+### ✔️ Prerequisites
 
-Android Studio Hedgehog (or newer)
+* Android Studio Hedgehog (or newer)
+* Android device running **Android 8.0+**
+* Firebase account
 
-Android Device (Android 8.0+)
+---
 
-Firebase Account
+### 📦 Installation
 
-Installation
+#### 1. Clone the Repository
 
-Clone the repository:
+```bash
+git clone https://github.com/AkashK0907/-DOCTYPE-html.git
+```
 
-git clone [https://github.com/AkashK0907/-DOCTYPE-html.git](https://github.com/AkashK0907/-DOCTYPE-html.git)
+(You may rename the repo link later if needed.)
 
+---
 
-Open in Android Studio.
+#### 2. Open in Android Studio
 
-Add Firebase Config:
+File → Open → Select the project folder.
 
-Create a project on Firebase Console.
+---
 
-Download google-services.json.
+#### 3. Add Firebase Config
 
-Place it in the app/ folder.
+1. Create a project in **Firebase Console**.
+2. Download the `google-services.json`.
+3. Place it inside the **app/** folder.
 
-Build & Run:
+---
 
-Click the Green Play Button (▶️).
+#### 4. Build & Run
 
-Important: Grant "Accessibility Permissions" on your phone when prompted to enable the App Blocker.
+Click the **Run (▶️)** button in Android Studio.
 
-👥 Team
+👉 **Important:** When prompted on your device, enable **Accessibility Permissions** to activate the App Blocker.
 
-Akash K - Lead Developer (@AkashK0907)
+---
 
-🙏 Acknowledgments
+## 👥 Team
 
-Google Firebase for the robust backend.
+* **Akash K** — Lead Developer
+  GitHub: [@AkashK0907](https://github.com/AkashK0907)
 
-Jetpack Compose for the beautiful UI toolkit.
+---
 
-Hackathon Organizers for the inspiration to build this.
+## 🙏 Acknowledgments
 
-Built with ❤️ and too much caffeine for Hackathon 2025.
+* **Google Firebase** for backend services.
+* **Jetpack Compose** for the modern UI toolkit.
+* Hackathon 2025 organizers for the inspiration.
+
+Built with ❤️ and way too much caffeine.
+
+---
