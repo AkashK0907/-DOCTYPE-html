@@ -154,12 +154,12 @@ Click the **Run (▶️)** button in Android Studio.
 * **Akshayaditya K R** — UI/UX Developer
   GitHub: [@AkShAdIt](https://github.com/AkShAdIt)
 * **Akash H G** — AI Developer
-  GitHub: [@](https://github.com/AkashK0907)
+  GitHub: [@akashhg2007](https://github.com/akashhg2007)
 * **Aniketh V** — Lead Researcher
   GitHub: [@aniketh-collab](https://github.com/aniketh-collab)
-* **Akash K J** —
+* **Akash K J** — Tester
   GitHub: [@kjakash05-lang](https://github.com/kjakash05-lang)
-* **Pragna** — 
+* **Pragna** — AI Developer
   GitHub: [@pragna1526](https://github.com/pragna1526)
   
 
