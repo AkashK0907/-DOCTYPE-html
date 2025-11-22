@@ -14,5 +14,9 @@ object Routes {
     const val POINTS = "points"
     const val BADGES = "badges"
     const val NOTIFICATIONS = "notifications"
-    const val HISTORY = "history" // <--- NEW LINE
+    const val HISTORY = "history"
+
+    const val GROUP_DETAIL = "group_detail/{groupId}"
+
+    const val SCANNER = "scanner"
 }

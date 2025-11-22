@@ -12,6 +12,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -25,8 +26,8 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import java.util.Locale
 import kotlinx.coroutines.delay
+import java.util.Locale
 
 @Composable
 fun HomeScreen(
@@ -37,11 +38,10 @@ fun HomeScreen(
     onOpenPoints: () -> Unit,
     onOpenBadges: () -> Unit,
     onOpenNotifications: () -> Unit,
-    onOpenHistory: () -> Unit // <--- Added this parameter
+    onOpenHistory: () -> Unit,
+    onOpenScanner: () -> Unit // <--- NEW PARAMETER
 ) {
-    // FIX: Change 'tasks' to 'activeTasks'
     val tasks = appViewModel.activeTasks
-
     val colors = MaterialTheme.colorScheme
     val isDark = appViewModel.isDarkTheme
 
@@ -93,7 +93,6 @@ fun HomeScreen(
                     Column {
                         MenuRow(Icons.Default.CalendarMonth, "Calendar") { onOpenCalendar(); showMenu = false }
                         MenuDivider()
-                        // NEW HISTORY BUTTON
                         MenuRow(Icons.Default.History, "Past Tasks") { onOpenHistory(); showMenu = false }
                         MenuDivider()
                         MenuRow(Icons.Default.Star, "Points (${appViewModel.totalPoints})") { onOpenPoints(); showMenu = false }
@@ -156,9 +155,16 @@ fun HomeScreen(
         }
 
         // FABs
+        // Center Camera (BIG) -> CONNECTED TO SCANNER!
         Box(modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 24.dp)) {
-            GlassFAB(icon = Icons.Default.CameraAlt, size = 75.dp, iconSize = 32.dp, onClick = { /* Camera */ })
+            GlassFAB(
+                icon = Icons.Default.CameraAlt,
+                size = 75.dp,
+                iconSize = 32.dp,
+                onClick = { onOpenScanner() } // <--- WIRED UP!
+            )
         }
+
         Box(modifier = Modifier.align(Alignment.BottomStart).padding(32.dp)) {
             GlassFAB(icon = Icons.Default.EmojiEvents, size = 56.dp, iconSize = 24.dp, onClick = { onOpenLeaderboard() })
         }

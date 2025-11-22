@@ -1,9 +1,11 @@
 package com.example.productivitycontrol
 
 import androidx.compose.runtime.Composable
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 
 @Composable
 fun AppNavHost(appViewModel: AppViewModel) {
@@ -13,6 +15,7 @@ fun AppNavHost(appViewModel: AppViewModel) {
         navController = navController,
         startDestination = Routes.LOGIN
     ) {
+        // ... (Login/Register flows remain the same) ...
         composable(Routes.LOGIN) {
             LoginScreen(
                 onLoginSuccess = { navController.navigate(Routes.HOME) { popUpTo(0) } },
@@ -57,6 +60,8 @@ fun AppNavHost(appViewModel: AppViewModel) {
             )
         }
 
+        // --- UPDATED HOME ROUTE ---
+        // We added 'onOpenScanner' so the Home Screen can trigger navigation
         composable(Routes.HOME) {
             HomeScreen(
                 appViewModel = appViewModel,
@@ -66,12 +71,29 @@ fun AppNavHost(appViewModel: AppViewModel) {
                 onOpenPoints = { navController.navigate(Routes.POINTS) },
                 onOpenBadges = { navController.navigate(Routes.BADGES) },
                 onOpenNotifications = { navController.navigate(Routes.NOTIFICATIONS) },
-                onOpenHistory = { navController.navigate(Routes.HISTORY) } // <--- NEW LINK
+                onOpenHistory = { navController.navigate(Routes.HISTORY) },
+                onOpenScanner = { navController.navigate(Routes.SCANNER) } // <--- NEW: Open Scanner
             )
         }
 
         composable(Routes.GROUPS) {
-            GroupsScreen(viewModel = appViewModel, onBack = { navController.popBackStack() })
+            GroupsScreen(
+                viewModel = appViewModel,
+                onBack = { navController.popBackStack() },
+                onGroupClick = { groupId -> navController.navigate("group_detail/$groupId") }
+            )
+        }
+
+        composable(
+            route = Routes.GROUP_DETAIL,
+            arguments = listOf(navArgument("groupId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val groupId = backStackEntry.arguments?.getString("groupId") ?: return@composable
+            GroupDetailScreen(
+                groupId = groupId,
+                viewModel = appViewModel,
+                onBack = { navController.popBackStack() }
+            )
         }
 
         composable(Routes.LEADERBOARD) {
@@ -94,9 +116,16 @@ fun AppNavHost(appViewModel: AppViewModel) {
             NotificationsScreen(onBack = { navController.popBackStack() })
         }
 
-        // NEW HISTORY SCREEN ROUTE
         composable(Routes.HISTORY) {
             HistoryScreen(viewModel = appViewModel, onBack = { navController.popBackStack() })
+        }
+
+        // --- NEW SCANNER ROUTE ---
+        composable(Routes.SCANNER) {
+            AIScannerScreen(
+                viewModel = appViewModel,
+                onBack = { navController.popBackStack() }
+            )
         }
     }
 }

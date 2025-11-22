@@ -72,4 +72,9 @@ dependencies {
     implementation("com.google.firebase:firebase-firestore-ktx")
     implementation("com.google.android.gms:play-services-auth:20.7.0")
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
+    // --- AI & CAMERA ---
+    implementation("com.google.mlkit:image-labeling:17.0.7") // The AI Brain
+    implementation("androidx.camera:camera-camera2:1.3.1")
+    implementation("androidx.camera:camera-lifecycle:1.3.1")
+    implementation("androidx.camera:camera-view:1.3.1")
 }
