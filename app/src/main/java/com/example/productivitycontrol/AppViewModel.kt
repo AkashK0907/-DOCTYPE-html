@@ -8,9 +8,11 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.launch
+import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneId
 
-// We deleted "DailyTask" because we use "TaskEntity" now!
-
+// --- DATA CLASSES ---
 data class BlockedApp(
     val packageName: String,
     val displayName: String,
@@ -26,23 +28,35 @@ data class Group(
     val maxMembers: Int
 )
 
-// Changed to "AndroidViewModel" so we can access the Database
+data class BadgeDef(
+    val title: String,
+    val description: String,
+    val threshold: Int,
+    val iconChar: String
+)
+
 class AppViewModel(application: Application) : AndroidViewModel(application) {
 
-    // --- DATABASE CONNECTION ---
     private val db = AppDatabase.getDatabase(application)
     private val dao = db.taskDao()
 
     var isDarkTheme by mutableStateOf(true)
         private set
 
-    // We now hold a list of Database Entities
-    var tasks = mutableStateListOf<TaskEntity>()
+    // --- SPLIT LISTS ---
+    var activeTasks = mutableStateListOf<TaskEntity>() // For Home Screen
+        private set
+
+    var historyTasks = mutableStateListOf<TaskEntity>() // For Past Tasks Screen
         private set
 
     val blockedApps = mutableStateListOf<BlockedApp>()
     val groups = mutableStateListOf<Group>()
+
     var totalPoints by mutableStateOf(0)
+        private set
+
+    var currentStreak by mutableStateOf(0)
         private set
 
     var focusRunning by mutableStateOf(false)
@@ -50,70 +64,104 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     var focusSeconds by mutableStateOf(0)
         private set
 
-    // Initialize: Listen to the database!
+    val badgesList = listOf(
+        BadgeDef("Novice", "Earn your first 100 points", 100, "🌱"),
+        BadgeDef("Consistency", "Reach 500 points", 500, "🔥"),
+        BadgeDef("Achiever", "Hit the 1,000 point mark", 1000, "🚀"),
+        BadgeDef("Expert", "Accumulate 5,000 points", 5000, "💎"),
+        BadgeDef("Master", "Serious dedication (10k)", 10000, "👑"),
+        BadgeDef("Productivity God", "The ultimate rank (20k)", 20000, "⚡")
+    )
+
     init {
         viewModelScope.launch {
-            // This updates the list automatically whenever the DB changes
             dao.getAllTasks().collect { dbTasks ->
-                tasks.clear()
-                tasks.addAll(dbTasks)
+                // 24 Hour Cutoff (86400000 milliseconds)
+                val cutoff = System.currentTimeMillis() - 86400000
+
+                activeTasks.clear()
+                historyTasks.clear()
+
+                dbTasks.forEach { task ->
+                    // IF task is NOT done OR it was done recently -> Keep on Home
+                    if (!task.isCompleted || task.date > cutoff) {
+                        activeTasks.add(task)
+                    } else {
+                        // IF task is done AND old -> Move to History
+                        historyTasks.add(task)
+                    }
+                }
+
+                recalculateStats(dbTasks) // Pass full list for points calc
             }
         }
     }
 
-    fun toggleTheme() {
-        isDarkTheme = !isDarkTheme
+    private fun recalculateStats(allTasks: List<TaskEntity>) {
+        totalPoints = allTasks.filter { it.isCompleted }.size * 10
+
+        // Streak Logic
+        val completedDates = allTasks
+            .filter { it.isCompleted }
+            .map { Instant.ofEpochMilli(it.date).atZone(ZoneId.systemDefault()).toLocalDate() }
+            .distinct()
+            .sortedDescending()
+
+        if (completedDates.isEmpty()) {
+            currentStreak = 0
+            return
+        }
+
+        var streak = 0
+        val today = LocalDate.now()
+        var checkDate = today
+
+        if (!completedDates.contains(today)) checkDate = today.minusDays(1)
+
+        while (completedDates.contains(checkDate)) {
+            streak++
+            checkDate = checkDate.minusDays(1)
+        }
+        currentStreak = streak
     }
 
-    // UPDATED: Save to Database
+    fun toggleTheme() { isDarkTheme = !isDarkTheme }
+
     fun addTask(name: String, durationMinutes: Int) {
         viewModelScope.launch {
-            dao.insertTask(
-                TaskEntity(
-                    name = name,
-                    durationMinutes = durationMinutes
-                )
-            )
+            dao.insertTask(TaskEntity(name = name, durationMinutes = durationMinutes, date = System.currentTimeMillis()))
         }
     }
 
-    // UPDATED: Update Database
     fun markTaskCompleted(task: TaskEntity) {
         viewModelScope.launch {
             val newStatus = !task.isCompleted
             dao.updateCompletion(task.id, newStatus)
-
-            if (newStatus) {
-                totalPoints += 10
-            }
         }
     }
 
     fun addMockBlockedAppsIfEmpty() {
         if (blockedApps.isEmpty()) {
-            blockedApps.addAll(
-                listOf(
-                    BlockedApp("com.instagram.android", "Instagram"),
-                    BlockedApp("com.facebook.katana", "Facebook"),
-                    BlockedApp("com.twitter.android", "X / Twitter"),
-                    BlockedApp("com.snapchat.android", "Snapchat")
-                )
-            )
+            blockedApps.addAll(listOf(
+                BlockedApp("com.instagram.android", "Instagram"),
+                BlockedApp("com.facebook.katana", "Facebook"),
+                BlockedApp("com.twitter.android", "X / Twitter"),
+                BlockedApp("com.snapchat.android", "Snapchat")
+            ))
         }
     }
+
     fun startFocus() {
         focusRunning = true
-        // Turn ON the shield!
         FocusState.isBlockingActive = true
     }
+
     fun stopFocus() {
         focusRunning = false
-        // Turn OFF the shield
         FocusState.isBlockingActive = false
     }
+
     fun completeFocusSecondTick() {
-        if (focusRunning) {
-            focusSeconds++
-        }
+        if (focusRunning) focusSeconds++
     }
 }

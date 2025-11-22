@@ -22,9 +22,7 @@ fun AppNavHost(appViewModel: AppViewModel) {
 
         composable(Routes.REGISTER) {
             RegisterScreen(
-                onRegistrationComplete = {
-                    navController.navigate(Routes.WHY)
-                },
+                onRegistrationComplete = { navController.navigate(Routes.WHY) },
                 onBackToLogin = { navController.popBackStack() }
             )
         }
@@ -54,11 +52,7 @@ fun AppNavHost(appViewModel: AppViewModel) {
 
         composable(Routes.PERMISSIONS) {
             PermissionsScreen(
-                onDone = {
-                    navController.navigate(Routes.HOME) {
-                        popUpTo(0)
-                    }
-                },
+                onDone = { navController.navigate(Routes.HOME) { popUpTo(0) } },
                 onPrev = { navController.popBackStack() }
             )
         }
@@ -71,15 +65,13 @@ fun AppNavHost(appViewModel: AppViewModel) {
                 onOpenCalendar = { navController.navigate(Routes.CALENDAR) },
                 onOpenPoints = { navController.navigate(Routes.POINTS) },
                 onOpenBadges = { navController.navigate(Routes.BADGES) },
-                onOpenNotifications = { navController.navigate(Routes.NOTIFICATIONS) }
+                onOpenNotifications = { navController.navigate(Routes.NOTIFICATIONS) },
+                onOpenHistory = { navController.navigate(Routes.HISTORY) } // <--- NEW LINK
             )
         }
 
         composable(Routes.GROUPS) {
-            GroupsScreen(
-                viewModel = appViewModel,
-                onBack = { navController.popBackStack() }
-            )
+            GroupsScreen(viewModel = appViewModel, onBack = { navController.popBackStack() })
         }
 
         composable(Routes.LEADERBOARD) {
@@ -87,30 +79,24 @@ fun AppNavHost(appViewModel: AppViewModel) {
         }
 
         composable(Routes.CALENDAR) {
-            CalendarScreen(
-                viewModel = appViewModel,
-                onBack = { navController.popBackStack() }
-            )
+            CalendarScreen(viewModel = appViewModel, onBack = { navController.popBackStack() })
         }
 
         composable(Routes.POINTS) {
-            PointsScreen(
-                viewModel = appViewModel,
-                onBack = { navController.popBackStack() }
-            )
+            PointsScreen(viewModel = appViewModel, onBack = { navController.popBackStack() })
         }
 
         composable(Routes.BADGES) {
-            BadgesScreen(
-                viewModel = appViewModel,
-                onBack = { navController.popBackStack() }
-            )
+            BadgesScreen(viewModel = appViewModel, onBack = { navController.popBackStack() })
         }
 
         composable(Routes.NOTIFICATIONS) {
-            NotificationsScreen(
-                onBack = { navController.popBackStack() }
-            )
+            NotificationsScreen(onBack = { navController.popBackStack() })
+        }
+
+        // NEW HISTORY SCREEN ROUTE
+        composable(Routes.HISTORY) {
+            HistoryScreen(viewModel = appViewModel, onBack = { navController.popBackStack() })
         }
     }
 }
