@@ -18,7 +18,6 @@ import java.util.UUID
 // --- DATA CLASSES ---
 data class BlockedApp(val packageName: String, val displayName: String, var enabled: Boolean = true)
 
-// UPDATED GROUP MODEL
 data class Group(
     val id: String = "",
     val name: String = "",
@@ -33,7 +32,6 @@ data class Group(
 
 data class BadgeDef(val title: String, val description: String, val threshold: Int, val iconChar: String)
 
-// UPDATED USER SCORE (With todayMinutes)
 data class UserScore(
     val userId: String = "",
     val userName: String = "Anonymous",
@@ -59,13 +57,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     var leaderboard = mutableStateListOf<UserScore>()
         private set
 
-    // GROUPS LISTS
     var allPublicGroups = mutableStateListOf<Group>()
         private set
     var myGroups = mutableStateListOf<Group>()
         private set
-
-    // MEMBER DETAILS LIST
     var currentGroupMembers = mutableStateListOf<UserScore>()
         private set
 
@@ -92,7 +87,6 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     init {
         if (currentUserId != null) {
-            // 1. Listen to Tasks
             db.collection("tasks")
                 .whereEqualTo("userId", currentUserId)
                 .addSnapshotListener { snapshots, _ ->
@@ -103,28 +97,42 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                     }
                 }
 
-            // Start Listeners
             fetchLeaderboard()
             fetchPublicGroups()
             fetchMyGroups()
         }
     }
 
-    // --- LOGIC FUNCTIONS ---
+    // --- FIXED LOGIC ---
 
     private fun processTasks(allTasks: List<TaskEntity>) {
-        val cutoff = System.currentTimeMillis() - 86400000
-        activeTasks.clear(); historyTasks.clear()
+        val cutoff = System.currentTimeMillis() - 86400000 // 24 hours
+        activeTasks.clear()
+        historyTasks.clear()
+
         allTasks.sortedByDescending { it.date }.forEach { task ->
-            if (!task.isCompleted || task.date > cutoff) activeTasks.add(task) else historyTasks.add(task)
+            // FIX 2: Do NOT add "Focus Session" to the visible UI lists
+            if (task.name == "Focus Session") {
+                return@forEach
+            }
+
+            if (!task.isCompleted || task.date > cutoff) {
+                activeTasks.add(task)
+            } else {
+                historyTasks.add(task)
+            }
         }
+
+        // We still pass 'allTasks' (including hidden sessions) to stats,
+        // so your points and calendar still update!
         recalculateStats(allTasks)
     }
 
     private fun recalculateStats(allTasks: List<TaskEntity>) {
+        // 1. Calculate Points
         totalPoints = allTasks.filter { it.isCompleted }.size * 10
 
-        // Calculate Today's Minutes
+        // 2. Calculate Today's Minutes
         val today = LocalDate.now()
         val todayMinutes = allTasks
             .filter { it.isCompleted }
@@ -133,7 +141,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
         updateCloudScore(totalPoints, todayMinutes)
 
-        // Streak Logic
+        // 3. Streak
         val completedDates = allTasks.filter { it.isCompleted }
             .map { Instant.ofEpochMilli(it.date).atZone(ZoneId.systemDefault()).toLocalDate() }
             .distinct().sortedDescending()
@@ -151,81 +159,32 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         db.collection("leaderboard").document(currentUserId).set(userScore)
     }
 
-    // --- FETCH FUNCTIONS (These were missing!) ---
+    // --- ACTIONS ---
 
-    private fun fetchLeaderboard() {
-        db.collection("leaderboard").orderBy("score", Query.Direction.DESCENDING).limit(20)
-            .addSnapshotListener { snapshots, _ ->
-                if (snapshots != null) {
-                    leaderboard.clear()
-                    leaderboard.addAll(snapshots.toObjects(UserScore::class.java))
-                }
-            }
+    fun startFocus() {
+        focusRunning = true
+        FocusState.isBlockingActive = true
     }
 
-    private fun fetchPublicGroups() {
-        db.collection("groups")
-            .whereEqualTo("public", true)
-            .limit(20)
-            .addSnapshotListener { snapshots, _ ->
-                if (snapshots != null) {
-                    allPublicGroups.clear()
-                    allPublicGroups.addAll(snapshots.toObjects(Group::class.java))
-                }
-            }
-    }
+    fun stopFocus() {
+        focusRunning = false
+        FocusState.isBlockingActive = false
 
-    private fun fetchMyGroups() {
-        if (currentUserId == null) return
-        db.collection("groups")
-            .whereArrayContains("members", currentUserId)
-            .addSnapshotListener { snapshots, _ ->
-                if (snapshots != null) {
-                    myGroups.clear()
-                    myGroups.addAll(snapshots.toObjects(Group::class.java))
-                }
-            }
-    }
-
-    fun fetchGroupMembers(memberIds: List<String>) {
-        currentGroupMembers.clear()
-        if (memberIds.isEmpty()) return
-        memberIds.forEach { memberId ->
-            db.collection("leaderboard").document(memberId).get()
-                .addOnSuccessListener { document ->
-                    if (document.exists()) {
-                        val user = document.toObject(UserScore::class.java)
-                        if (user != null) currentGroupMembers.add(user)
-                    }
-                }
+        if (focusSeconds > 60 && currentUserId != null) {
+            val minutes = focusSeconds / 60
+            val sessionTask = TaskEntity(
+                name = "Focus Session", // This name triggers the filter in processTasks
+                durationMinutes = minutes,
+                date = System.currentTimeMillis(),
+                userId = currentUserId,
+                isCompleted = true
+            )
+            db.collection("tasks").add(sessionTask)
         }
+        focusSeconds = 0
     }
 
-    // --- ACTION FUNCTIONS ---
-
-    fun createGroup(name: String, description: String, goal: Int, isPublic: Boolean, maxMembers: Int) {
-        if (currentUserId == null) return
-        val uniqueCode = UUID.randomUUID().toString().substring(0, 6).uppercase()
-        val newGroup = Group("", name, description, uniqueCode, goal, isPublic, currentUserId, listOf(currentUserId), maxMembers)
-        db.collection("groups").add(newGroup)
-    }
-
-    fun joinGroup(group: Group) {
-        if (currentUserId == null || group.members.contains(currentUserId)) return
-        db.collection("groups").whereEqualTo("code", group.code).get()
-            .addOnSuccessListener { documents -> for (document in documents) document.reference.update("members", com.google.firebase.firestore.FieldValue.arrayUnion(currentUserId)) }
-    }
-
-    fun joinByCode(code: String, onSuccess: () -> Unit, onFailure: () -> Unit) {
-        if (currentUserId == null) return
-        db.collection("groups").whereEqualTo("code", code.uppercase()).get()
-            .addOnSuccessListener { documents ->
-                if (!documents.isEmpty) {
-                    documents.documents[0].reference.update("members", com.google.firebase.firestore.FieldValue.arrayUnion(currentUserId))
-                    onSuccess()
-                } else { onFailure() }
-            }
-    }
+    fun completeFocusSecondTick() { if (focusRunning) focusSeconds++ }
 
     fun toggleTheme() { isDarkTheme = !isDarkTheme }
 
@@ -236,21 +195,64 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun markTaskCompleted(task: TaskEntity) {
-        if (task.id.isNotEmpty()) db.collection("tasks").document(task.id).update("completed", !task.isCompleted)
-    }
+        // FIX 1: INSTANT UI UPDATE (Optimistic)
+        val index = activeTasks.indexOfFirst { it.id == task.id }
+        if (index != -1) {
+            // We create a copy to force the UI to redraw immediately
+            activeTasks[index] = activeTasks[index].copy(isCompleted = !task.isCompleted)
+        }
 
-    fun addMockBlockedAppsIfEmpty() {
-        if (blockedApps.isEmpty()) {
-            blockedApps.addAll(listOf(
-                BlockedApp("com.instagram.android", "Instagram"),
-                BlockedApp("com.facebook.katana", "Facebook"),
-                BlockedApp("com.twitter.android", "X / Twitter"),
-                BlockedApp("com.snapchat.android", "Snapchat")
-            ))
+        // Send to DB in background
+        if (task.id.isNotEmpty()) {
+            db.collection("tasks").document(task.id).update("isCompleted", !task.isCompleted)
+                .addOnFailureListener {
+                    // Revert if internet fails
+                    if (index != -1) activeTasks[index] = activeTasks[index].copy(isCompleted = task.isCompleted)
+                }
         }
     }
 
-    fun startFocus() { focusRunning = true; FocusState.isBlockingActive = true }
-    fun stopFocus() { focusRunning = false; FocusState.isBlockingActive = false }
-    fun completeFocusSecondTick() { if (focusRunning) focusSeconds++ }
+    // --- FETCHERS ---
+    private fun fetchLeaderboard() {
+        db.collection("leaderboard").orderBy("score", Query.Direction.DESCENDING).limit(20)
+            .addSnapshotListener { snapshots, _ -> if (snapshots != null) { leaderboard.clear(); leaderboard.addAll(snapshots.toObjects(UserScore::class.java)) } }
+    }
+    private fun fetchPublicGroups() {
+        db.collection("groups").whereEqualTo("public", true).limit(20)
+            .addSnapshotListener { snapshots, _ -> if (snapshots != null) { allPublicGroups.clear(); allPublicGroups.addAll(snapshots.toObjects(Group::class.java)) } }
+    }
+    private fun fetchMyGroups() {
+        if (currentUserId == null) return
+        db.collection("groups").whereArrayContains("members", currentUserId)
+            .addSnapshotListener { snapshots, _ -> if (snapshots != null) { myGroups.clear(); myGroups.addAll(snapshots.toObjects(Group::class.java)) } }
+    }
+    fun fetchGroupMembers(memberIds: List<String>) {
+        currentGroupMembers.clear()
+        if (memberIds.isEmpty()) return
+        memberIds.forEach { memberId ->
+            db.collection("leaderboard").document(memberId).get().addOnSuccessListener { document ->
+                if (document.exists()) {
+                    val user = document.toObject(UserScore::class.java)
+                    if (user != null) currentGroupMembers.add(user)
+                }
+            }
+        }
+    }
+    fun createGroup(name: String, description: String, goal: Int, isPublic: Boolean, maxMembers: Int) {
+        if (currentUserId == null) return
+        val uniqueCode = UUID.randomUUID().toString().substring(0, 6).uppercase()
+        val newGroup = Group("", name, description, uniqueCode, goal, isPublic, currentUserId, listOf(currentUserId), maxMembers)
+        db.collection("groups").add(newGroup)
+    }
+    fun joinGroup(group: Group) {
+        if (currentUserId == null || group.members.contains(currentUserId)) return
+        db.collection("groups").whereEqualTo("code", group.code).get().addOnSuccessListener { documents -> for (document in documents) document.reference.update("members", com.google.firebase.firestore.FieldValue.arrayUnion(currentUserId)) }
+    }
+    fun joinByCode(code: String, onSuccess: () -> Unit, onFailure: () -> Unit) {
+        if (currentUserId == null) return
+        db.collection("groups").whereEqualTo("code", code.uppercase()).get().addOnSuccessListener { documents ->
+            if (!documents.isEmpty) { documents.documents[0].reference.update("members", com.google.firebase.firestore.FieldValue.arrayUnion(currentUserId)); onSuccess() } else { onFailure() }
+        }
+    }
+    fun addMockBlockedAppsIfEmpty() { if (blockedApps.isEmpty()) blockedApps.addAll(listOf(BlockedApp("com.instagram.android", "Instagram"), BlockedApp("com.facebook.katana", "Facebook"), BlockedApp("com.twitter.android", "X / Twitter"), BlockedApp("com.snapchat.android", "Snapchat"))) }
 }

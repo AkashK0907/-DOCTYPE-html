@@ -147,14 +147,13 @@ fun HeatmapCell(minutes: Int) {
     val colors = MaterialTheme.colorScheme
     val color = when {
         minutes == 0 -> colors.surface.copy(alpha = 0.5f)
-        minutes < 30 -> Color(0xFF0E4429)
-        minutes < 60 -> Color(0xFF006D32)
-        minutes < 120 -> Color(0xFF26A641)
-        else -> Color(0xFF39D353)
+        minutes < 30 -> Color(0xFF0E4429) // Dark Green
+        minutes < 60 -> Color(0xFF006D32) // Medium
+        minutes < 120 -> Color(0xFF26A641) // Bright
+        else -> Color(0xFF39D353)         // Neon
     }
-    Box(modifier = Modifier.size(14.dp).clip(RoundedCornerShape(3.dp)).background(color).border(0.5.dp, if(minutes == 0) colors.outline.copy(0.1f) else Color.Transparent, RoundedCornerShape(3.dp)))
+    // ... Box code ...
 }
-
 @Composable
 fun CalendarScreen(viewModel: AppViewModel, onBack: () -> Unit) {
     val tasks = viewModel.activeTasks + viewModel.historyTasks

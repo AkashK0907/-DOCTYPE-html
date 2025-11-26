@@ -26,8 +26,9 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import kotlinx.coroutines.delay
 import java.util.Locale
+import kotlinx.coroutines.delay
+import androidx.compose.ui.draw.alpha
 
 @Composable
 fun HomeScreen(
@@ -39,7 +40,7 @@ fun HomeScreen(
     onOpenBadges: () -> Unit,
     onOpenNotifications: () -> Unit,
     onOpenHistory: () -> Unit,
-    onOpenScanner: () -> Unit // <--- NEW PARAMETER
+    onOpenScanner: () -> Unit
 ) {
     val tasks = appViewModel.activeTasks
     val colors = MaterialTheme.colorScheme
@@ -57,123 +58,124 @@ fun HomeScreen(
         }
     }
 
+    // 1. DYNAMIC BACKGROUND BRUSH
     val bgBrush = if (isDark) {
         Brush.linearGradient(listOf(Color(0xFF2C2C2E), Color(0xFF151515), Color(0xFF000000)))
     } else {
         Brush.linearGradient(listOf(Color(0xFFFFFFFF), Color(0xFFF2F2F7), Color(0xFFE5E5EA)))
     }
 
-    Box(modifier = Modifier.fillMaxSize().background(brush = bgBrush)) {
-        Column(modifier = Modifier.fillMaxSize().padding(horizontal = 20.dp, vertical = 16.dp)) {
+    // FIX: WRAP IN SURFACE TO PREVENT WHITE FLASH
+    Surface(
+        modifier = Modifier.fillMaxSize(),
+        color = if(isDark) Color.Black else Color(0xFFF2F2F7) // Hardcoded base color
+    ) {
+        Box(modifier = Modifier.fillMaxSize().background(brush = bgBrush)) {
+            Column(modifier = Modifier.fillMaxSize().padding(horizontal = 20.dp, vertical = 16.dp)) {
 
-            // HEADER
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                GlassIconButton(icon = Icons.Default.Menu, onClick = { showMenu = !showMenu })
+                // HEADER
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    GlassIconButton(icon = Icons.Default.Menu, onClick = { showMenu = !showMenu })
 
-                // LOGO
-                Image(
-                    painter = painterResource(id = R.drawable.header),
-                    contentDescription = "App Logo",
-                    contentScale = androidx.compose.ui.layout.ContentScale.Fit,
-                    modifier = Modifier.height(40.dp).widthIn(max = 150.dp),
-                    colorFilter = if (isDark) null else androidx.compose.ui.graphics.ColorFilter.tint(Color.Black)
-                )
+                    // LOGO
+                    Image(
+                        painter = painterResource(id = R.drawable.header),
+                        contentDescription = "App Logo",
+                        contentScale = androidx.compose.ui.layout.ContentScale.Fit,
+                        modifier = Modifier.height(40.dp).widthIn(max = 150.dp),
+                        // Logic: Dark Mode = Original, Light Mode = Tint Black
+                        colorFilter = if (isDark) null else androidx.compose.ui.graphics.ColorFilter.tint(Color.Black)
+                    )
 
-                GlassIconButton(icon = Icons.Default.Notifications, onClick = { onOpenNotifications() })
-            }
-
-            // MENU
-            if (showMenu) {
-                Spacer(Modifier.height(16.dp))
-                GlassCard(modifier = Modifier.fillMaxWidth().animateContentSize()) {
-                    Column {
-                        MenuRow(Icons.Default.CalendarMonth, "Calendar") { onOpenCalendar(); showMenu = false }
-                        MenuDivider()
-                        MenuRow(Icons.Default.History, "Past Tasks") { onOpenHistory(); showMenu = false }
-                        MenuDivider()
-                        MenuRow(Icons.Default.Star, "Points (${appViewModel.totalPoints})") { onOpenPoints(); showMenu = false }
-                        MenuDivider()
-                        MenuRow(Icons.Default.WorkspacePremium, "Badges") { onOpenBadges(); showMenu = false }
-                        MenuDivider()
-                        MenuRow(if (isDark) Icons.Default.LightMode else Icons.Default.DarkMode, "Toggle Theme") { appViewModel.toggleTheme() }
-                    }
+                    GlassIconButton(icon = Icons.Default.Notifications, onClick = { onOpenNotifications() })
                 }
-            }
 
-            Spacer(Modifier.height(24.dp))
-
-            // GREETING & STREAK
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Bottom
-            ) {
-                Column {
-                    Text("Your Focus", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.SemiBold, color = colors.primary)
-                    Text("${tasks.count { !it.isCompleted }} tasks remaining", style = MaterialTheme.typography.bodyMedium, color = colors.primary.copy(alpha = 0.5f))
-                }
-                if (appViewModel.currentStreak > 0) {
-                    GlassCard {
-                        Row(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Text("🔥", fontSize = 16.sp)
-                            Spacer(Modifier.width(6.dp))
-                            Text("${appViewModel.currentStreak} Days", style = MaterialTheme.typography.labelSmall, color = colors.primary, fontWeight = FontWeight.Bold)
+                // MENU
+                if (showMenu) {
+                    Spacer(Modifier.height(16.dp))
+                    GlassCard(modifier = Modifier.fillMaxWidth().animateContentSize()) {
+                        Column {
+                            MenuRow(Icons.Default.CalendarMonth, "Calendar") { onOpenCalendar(); showMenu = false }
+                            MenuDivider()
+                            MenuRow(Icons.Default.History, "Past Tasks") { onOpenHistory(); showMenu = false }
+                            MenuDivider()
+                            MenuRow(Icons.Default.Star, "Points (${appViewModel.totalPoints})") { onOpenPoints(); showMenu = false }
+                            MenuDivider()
+                            MenuRow(Icons.Default.WorkspacePremium, "Badges") { onOpenBadges(); showMenu = false }
+                            MenuDivider()
+                            MenuRow(if (isDark) Icons.Default.LightMode else Icons.Default.DarkMode, "Toggle Theme") { appViewModel.toggleTheme() }
                         }
                     }
                 }
-            }
 
-            Spacer(Modifier.height(16.dp))
+                Spacer(Modifier.height(24.dp))
 
-            // TASK LIST
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.weight(1f)) {
-                items(tasks) { task ->
-                    TaskCard(task = task, onToggleCompleted = { appViewModel.markTaskCompleted(task) })
+                // GREETING & STREAK
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.Bottom
+                ) {
+                    Column {
+                        Text("Your Focus", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.SemiBold, color = colors.primary)
+                        Text("${tasks.count { !it.isCompleted }} tasks remaining", style = MaterialTheme.typography.bodyMedium, color = colors.primary.copy(alpha = 0.5f))
+                    }
+                    if (appViewModel.currentStreak > 0) {
+                        GlassCard {
+                            Row(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Text("🔥", fontSize = 16.sp)
+                                Spacer(Modifier.width(6.dp))
+                                Text("${appViewModel.currentStreak} Days", style = MaterialTheme.typography.labelSmall, color = colors.primary, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
                 }
+
+                Spacer(Modifier.height(16.dp))
+
+                // TASK LIST
+                LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.weight(1f)) {
+                    items(tasks) { task ->
+                        TaskCard(task = task, onToggleCompleted = { appViewModel.markTaskCompleted(task) })
+                    }
+                }
+
+                Spacer(Modifier.height(12.dp))
+
+                // ADD BUTTON
+                Button(
+                    onClick = { showAddTaskDialog = true },
+                    modifier = Modifier.fillMaxWidth().height(50.dp).border(0.5.dp, Brush.verticalGradient(listOf(colors.primary.copy(0.5f), colors.primary.copy(0.1f))), RoundedCornerShape(16.dp)),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = colors.surface)
+                ) { Text("+ New Task", fontSize = 15.sp, color = colors.primary.copy(0.9f)) }
+
+                Spacer(Modifier.height(16.dp))
+
+                // TIMER
+                FocusControlRow(appViewModel.focusRunning, appViewModel.focusSeconds, { appViewModel.startFocus() }, { appViewModel.stopFocus() })
+
+                Spacer(Modifier.height(100.dp))
             }
 
-            Spacer(Modifier.height(12.dp))
+            // FABs
+            Box(modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 24.dp)) {
+                GlassFAB(icon = Icons.Default.CameraAlt, size = 75.dp, iconSize = 32.dp, onClick = { onOpenScanner() })
+            }
+            Box(modifier = Modifier.align(Alignment.BottomStart).padding(32.dp)) {
+                GlassFAB(icon = Icons.Default.EmojiEvents, size = 56.dp, iconSize = 24.dp, onClick = { onOpenLeaderboard() })
+            }
+            Box(modifier = Modifier.align(Alignment.BottomEnd).padding(32.dp)) {
+                GlassFAB(icon = Icons.Default.Groups, size = 56.dp, iconSize = 24.dp, onClick = { onOpenGroups() })
+            }
 
-            // ADD BUTTON
-            Button(
-                onClick = { showAddTaskDialog = true },
-                modifier = Modifier.fillMaxWidth().height(50.dp).border(0.5.dp, Brush.verticalGradient(listOf(colors.primary.copy(0.5f), colors.primary.copy(0.1f))), RoundedCornerShape(16.dp)),
-                shape = RoundedCornerShape(16.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = colors.surface)
-            ) { Text("+ New Task", fontSize = 15.sp, color = colors.primary.copy(0.9f)) }
-
-            Spacer(Modifier.height(16.dp))
-
-            // TIMER
-            FocusControlRow(appViewModel.focusRunning, appViewModel.focusSeconds, { appViewModel.startFocus() }, { appViewModel.stopFocus() })
-
-            Spacer(Modifier.height(100.dp))
-        }
-
-        // FABs
-        // Center Camera (BIG) -> CONNECTED TO SCANNER!
-        Box(modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 24.dp)) {
-            GlassFAB(
-                icon = Icons.Default.CameraAlt,
-                size = 75.dp,
-                iconSize = 32.dp,
-                onClick = { onOpenScanner() } // <--- WIRED UP!
-            )
-        }
-
-        Box(modifier = Modifier.align(Alignment.BottomStart).padding(32.dp)) {
-            GlassFAB(icon = Icons.Default.EmojiEvents, size = 56.dp, iconSize = 24.dp, onClick = { onOpenLeaderboard() })
-        }
-        Box(modifier = Modifier.align(Alignment.BottomEnd).padding(32.dp)) {
-            GlassFAB(icon = Icons.Default.Groups, size = 56.dp, iconSize = 24.dp, onClick = { onOpenGroups() })
-        }
-
-        if (showAddTaskDialog) {
-            AddTaskDialog({ showAddTaskDialog = false }, { name, mins -> appViewModel.addTask(name, mins); showAddTaskDialog = false })
+            if (showAddTaskDialog) {
+                AddTaskDialog({ showAddTaskDialog = false }, { name, mins -> appViewModel.addTask(name, mins); showAddTaskDialog = false })
+            }
         }
     }
 }
@@ -188,14 +190,50 @@ fun GlassCard(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
 @Composable
 fun TaskCard(task: TaskEntity, onToggleCompleted: () -> Unit) {
     val colors = MaterialTheme.colorScheme
-    GlassCard(modifier = Modifier.fillMaxWidth()) {
-        Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+
+    // 1. Fade effect logic
+    val cardAlpha = if (task.isCompleted) 0.5f else 1f
+
+    // 2. Text Decoration logic
+    val textDecor = if (task.isCompleted) TextDecoration.LineThrough else null
+
+    GlassCard(
+        modifier = Modifier
+            .fillMaxWidth()
+            .alpha(cardAlpha) // Fades the card when done
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
             Column(modifier = Modifier.weight(1f)) {
-                Text(task.name, style = MaterialTheme.typography.bodyLarge, color = if (task.isCompleted) colors.primary.copy(alpha = 0.3f) else colors.primary.copy(0.9f), textDecoration = if (task.isCompleted) TextDecoration.LineThrough else null)
+                Text(
+                    text = task.name,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = colors.primary.copy(alpha = 0.9f),
+                    textDecoration = textDecor
+                )
                 Spacer(Modifier.height(2.dp))
-                Text("${task.durationMinutes} min", style = MaterialTheme.typography.labelSmall, color = colors.primary.copy(alpha = 0.4f))
+                Text(
+                    text = "${task.durationMinutes} min",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = colors.primary.copy(alpha = 0.4f)
+                )
             }
-            Checkbox(checked = task.isCompleted, onCheckedChange = { onToggleCompleted() }, colors = CheckboxDefaults.colors(checkedColor = colors.primary, uncheckedColor = colors.primary.copy(alpha = 0.3f), checkmarkColor = colors.onPrimary))
+
+            // 3. THE NEON CHECKBOX
+            Checkbox(
+                checked = task.isCompleted,
+                onCheckedChange = { onToggleCompleted() },
+                colors = CheckboxDefaults.colors(
+                    checkedColor = Color(0xFF00E676),  // Neon Green Background
+                    uncheckedColor = colors.primary.copy(alpha = 0.3f), // Empty Border
+                    checkmarkColor = Color.Black       // Black Check Icon
+                )
+            )
         }
     }
 }
